@@ -1,0 +1,488 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage[a4paper,margin=26mm]{geometry}
+\usepackage{microtype}
+\usepackage[hidelinks]{hyperref}
+\usepackage{caption}
+\usepackage{subcaption}
+
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{lemma}[theorem]{Lemma}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{remark}[theorem]{Remark}
+
+\newcommand{\Q}{\mathbb{Q}}
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\C}{\mathbb{C}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\Ftwo}{\mathbb{F}_2}
+\newcommand{\Gal}{\operatorname{Gal}}
+\newcommand{\Nm}{\operatorname{N}}
+\newcommand{\ord}{\operatorname{ord}}
+\newcommand{\rank}{\operatorname{rank}}
+\newcommand{\J}{\mathcal{J}}
+\newcommand{\Fatou}{\mathcal{F}}
+
+\title{\textbf{Algebraic Cayley Fiber Roots and Newton--Julia Dynamics}\\
+\large Galois Fields, Deep Zooms, and Fractal Rendering for Finite Groups}
+\author{%
+Orges Leka\thanks{Acknowledgements and author contributions: Orges Leka conceived the Cayley fibergraph definition, the algebraicity idea for the associated polynomial, and its application to Newton--Julia fractals. GPT-5.6 Sol contributed the writing and mathematical elaboration of the paper.}%
+\and
+GPT-5.6 Sol (OpenAI)}
+\date{October 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+We associate to every ordered finite group a finite family of complex points obtained from Cayley product-fiber permutations by centering and Euclidean normalization.  These points are used as zeros of a polynomial and hence define a Newton rational map.  The first result of this paper is arithmetic: every normalized fiber point is algebraic, all points from all fibers lie in a single multiquadratic number field, and the Galois group of this field is an elementary abelian $2$-group.  For rational recursive similarity rules, every point at every finite recursion depth remains in the same field; the field degree does not grow with recursion depth.  We then define Newton and Julia constructions for an arbitrary finite group and show how the fixed algebraic field can be exploited computationally.  Exact root data may be precomputed once, reevaluated at arbitrary precision, and reused in local-coordinate deep zooms.  A logarithmic-derivative form of Newton's method avoids explicit formation of large polynomial products, while adaptive basin subdivision, precision scheduling, and temporal coherence provide a practical pipeline for high-resolution MP4 rendering.  Numerical examples for $C_3$ and $Q_8$ illustrate the resulting Newton basins and Julia boundaries.
+\end{abstract}
+
+\section{Cayley product-fiber points}
+
+Let $G$ be a finite group of order $n\ge 2$ with a fixed ordering
+\[
+G=(g_0,g_1,\ldots,g_{n-1})
+\]
+and index map
+\[
+\nu:G\longrightarrow \{0,1,\ldots,n-1\},\qquad \nu(g_j)=j.
+\]
+For $h\in G$, define the fiber permutation
+\begin{equation}
+\label{eq:sigma}
+\sigma_h(j)=\nu(hg_j^{-1}),\qquad 0\le j<n.
+\end{equation}
+The corresponding product fiber is the graph of this permutation.  We use the planar embedding
+\begin{equation}
+\label{eq:rawpoints}
+p_{h,j}=\bigl(j,n-1-\sigma_h(j)\bigr)\in\Z^2.
+\end{equation}
+Because $\sigma_h$ is a permutation, the barycenter is independent of $h$:
+\begin{equation}
+\label{eq:bary}
+c=\left(\frac{n-1}{2},\frac{n-1}{2}\right).
+\end{equation}
+Define
+\begin{equation}
+\label{eq:AB}
+A_j=2j-(n-1),\qquad B_{h,j}=(n-1)-2\sigma_h(j).
+\end{equation}
+Then
+\[
+p_{h,j}-c=\frac12(A_j,B_{h,j}).
+\]
+Let
+\begin{equation}
+\label{eq:dh}
+d_h=\max_{0\le j<n}\bigl(A_j^2+B_{h,j}^2\bigr)\in\Z_{>0}.
+\end{equation}
+The maximal Euclidean radius is $R_h=\sqrt{d_h}/2$.  We therefore associate to the fiber point $p_{h,j}$ the normalized complex number
+\begin{equation}
+\label{eq:alpha}
+\boxed{
+\alpha_{h,j}=\frac{A_j+iB_{h,j}}{\sqrt{d_h}}.
+}
+\end{equation}
+The construction depends on the chosen ordering of $G$, as does the embedded geometry.
+
+\section{Algebraicity and the Cayley fiber field}
+
+\begin{theorem}[Algebraicity of every normalized fiber point]
+\label{thm:algebraic}
+For every $h\in G$ and $0\le j<n$,
+\[
+\alpha_{h,j}\in\Q(i,\sqrt{d_h})\subset\overline{\Q}.
+\]
+In particular,
+\[
+[\Q(\alpha_{h,j}):\Q]\le 4.
+\]
+\end{theorem}
+
+\begin{proof}
+Equation \eqref{eq:alpha} has $A_j,B_{h,j},d_h\in\Z$ and $d_h>0$.  Thus $\alpha_{h,j}$ belongs to the compositum of the quadratic fields $\Q(i)$ and $\Q(\sqrt{d_h})$, whose degree over $\Q$ is at most four.
+\end{proof}
+
+The algebraicity can be written without radicals.
+
+\begin{proposition}[Explicit quartic]
+\label{prop:quartic}
+Let $A=A_j$, $B=B_{h,j}$ and $d=d_h$.  Then $\alpha_{h,j}$ is a zero of
+\begin{equation}
+\label{eq:quartic}
+F_{h,j}(X)
+=d^2X^4+2d(B^2-A^2)X^2+(A^2+B^2)^2\in\Z[X].
+\end{equation}
+\end{proposition}
+
+\begin{proof}
+From $\sqrt d\,\alpha=A+iB$ we obtain
+\[
+d\alpha^2-2A\sqrt d\,\alpha+A^2+B^2=0.
+\]
+Multiplying by the conjugate equation under $\sqrt d\mapsto-\sqrt d$ gives \eqref{eq:quartic}.
+\end{proof}
+
+Let $s_h$ be the squarefree part of $d_h$.  The arithmetic object attached to the complete ordered fiber family is
+\begin{equation}
+\label{eq:KG}
+\boxed{
+K_G=\Q\bigl(i,\sqrt{s_h}:h\in G\bigr)
+=\Q\bigl(i,\sqrt{d_h}:h\in G\bigr).
+}
+\end{equation}
+
+\begin{theorem}[Cayley fiber field and its Galois group]
+\label{thm:galois}
+Let $r$ be the $\Ftwo$-rank of the subgroup of $\Q^\times/(\Q^\times)^2$ generated by the square classes $[d_h]$, $h\in G$.  Then
+\[
+[K_G:\Q]=2^{r+1}
+\]
+and
+\begin{equation}
+\label{eq:galois}
+\boxed{
+\Gal(K_G/\Q)\cong (C_2)^{r+1}.
+}
+\end{equation}
+In particular, $K_G/\Q$ is a finite multiquadratic Galois extension and $r\le n$.
+\end{theorem}
+
+\begin{proof}
+Put $L_G=\Q(\sqrt{d_h}:h\in G)$.  Standard multiquadratic theory gives $[L_G:\Q]=2^r$.  Since every $d_h>0$, the field $L_G$ is contained in $\R$.  Hence $i\notin L_G$, so adjoining $i$ doubles the degree.  Each independent radical may be sign-changed independently, and these involutions commute.  Thus the Galois group is elementary abelian of rank $r+1$.
+\end{proof}
+
+A useful computational form follows from choosing independent squarefree generators $s_1,\ldots,s_r$.  Then every element of $K_G$ has a unique representation over the basis
+\begin{equation}
+\label{eq:basis}
+\left\{i^\varepsilon\prod_{\ell=1}^r(\sqrt{s_\ell})^{e_\ell}:
+\varepsilon,e_1,\ldots,e_r\in\{0,1\}\right\}.
+\end{equation}
+Thus the exact algebraic data can be stored in a fixed vector space over $\Q$.
+
+\subsection{Finite recursive geometry does not enlarge the field}
+
+Suppose the fiber points are used in a recursive similarity construction with rational contraction ratio $\rho\in\Q$, $0<|\rho|<1$.  A finite-depth point has the form
+\begin{equation}
+\label{eq:recursivepoint}
+\beta=\alpha_{h_0,j_0}+\rho\alpha_{h_1,j_1}+\cdots+\rho^k\alpha_{h_k,j_k}.
+\end{equation}
+More generally, rational affine combinations may be allowed.
+
+\begin{theorem}[No field growth at finite depth]
+\label{thm:nofieldgrowth}
+Every point obtained at any finite recursion depth by rational affine operations on normalized fiber points belongs to $K_G$.  Hence
+\[
+[\Q(\beta):\Q]\le [K_G:\Q]=2^{r+1},
+\]
+independently of the recursion depth.
+\end{theorem}
+
+\begin{proof}
+The field $K_G$ contains every $\alpha_{h,j}$ and contains $\Q$.  It is closed under finite sums and products.  Therefore every expression of the form \eqref{eq:recursivepoint}, and every finite rational affine combination of such points, lies in $K_G$.
+\end{proof}
+
+\begin{remark}[Finite depth versus the limiting attractor]
+The theorem concerns every finite stage.  It does not assert that every point of an infinite limiting attractor is algebraic.  Indeed, $\overline{\Q}$ is countable, whereas a nondegenerate self-similar attractor is typically uncountable.
+\end{remark}
+
+\section{Polynomials attached to fibers and recursive stages}
+
+Let $S\subset K_G$ be a finite multiset of fiber or finite-depth recursive points, with positive multiplicities $m_\beta$.  Define
+\begin{equation}
+\label{eq:poly}
+P_S(z)=\prod_{\beta\in S}(z-\beta)^{m_\beta}\in K_G[z].
+\end{equation}
+The simplest choice is one fiber,
+\[
+S=\{\alpha_{h,0},\ldots,\alpha_{h,n-1}\}.
+\]
+For a recursive rendering, $S$ may instead be the final generation, all generations up to depth $k$, or any selected subfamily.
+
+\begin{corollary}
+For every finite stage, the Newton map associated with \eqref{eq:poly} is a rational function defined over the fixed field $K_G$:
+\[
+N_{P_S}\in K_G(z).
+\]
+\end{corollary}
+
+\begin{proof}
+Both $P_S$ and $P_S'$ lie in $K_G[z]$, so $z-P_S/P_S'$ lies in $K_G(z)$.
+\end{proof}
+
+There is also a rational Galois completion.  Since $K_G/\Q$ is Galois,
+\begin{equation}
+\label{eq:normpoly}
+\mathcal P_S(z)
+=\Nm_{K_G/\Q}(P_S(z))
+=\prod_{\tau\in\Gal(K_G/\Q)}\tau(P_S(z))
+\in\Q[z].
+\end{equation}
+After clearing denominators, $\mathcal P_S$ lies in $\Z[z]$.
+
+\begin{proposition}[Galois covariance of Newton dynamics]
+For $\tau\in\Gal(K_G/\Q)$,
+\begin{equation}
+\label{eq:galoiscov}
+\tau\!\left(N_{P_S}(z)\right)=N_{\tau(P_S)}\!\left(\tau(z)\right).
+\end{equation}
+If the root multiset $S$ and its multiplicities are Galois-stable, then $P_S$ is defined over $\Q$ up to a nonzero scalar, and the Newton map is defined over $\Q$.
+\end{proposition}
+
+\begin{proof}
+A field automorphism commutes with addition, multiplication, division and formal differentiation of coefficients.  Applying $\tau$ to $z-P_S/P_S'$ gives \eqref{eq:galoiscov}.  Galois stability implies that the elementary symmetric functions of the root multiset are fixed by the entire Galois group and hence belong to $\Q$.
+\end{proof}
+
+\section{Newton dynamics and Julia sets for an arbitrary finite group}
+
+Let $P=P_S$ be as in \eqref{eq:poly}.  Its Newton map is
+\begin{equation}
+\label{eq:newtonmap}
+\boxed{
+N_P(z)=z-\frac{P(z)}{P'(z)}.
+}
+\end{equation}
+Starting from $z_0\in\C$, define
+\begin{equation}
+\label{eq:iteration}
+z_{q+1}=N_P(z_q).
+\end{equation}
+If the orbit converges to a zero $\beta$, the initial point is assigned to the basin of attraction of $\beta$.  A Newton fractal colors the complex plane according to this basin label, usually with brightness depending on the number of iterations required for convergence.
+
+The rational map $N_P$ has a Julia set $\J(N_P)$ and Fatou set $\Fatou(N_P)$.  Numerically, the most visible part of $\J(N_P)$ is the boundary separating root basins.  A pixel rendering therefore approximates the Julia boundary by detecting neighboring initial conditions whose Newton orbits converge to different attracting roots.  Nonconvergent or unresolved pixels should be retained rather than forcibly assigned to the nearest root; this is essential for reliable deep zooms.
+
+\subsection{A root-based Newton formula}
+
+For computation, the product in \eqref{eq:poly} need not be expanded.  The logarithmic derivative gives
+\begin{equation}
+\label{eq:logder}
+\frac{P'(z)}{P(z)}
+=\sum_{\beta\in S}\frac{m_\beta}{z-\beta}.
+\end{equation}
+Hence, away from the roots,
+\begin{equation}
+\label{eq:rootnewton}
+\boxed{
+N_P(z)=z-
+\left(
+\sum_{\beta\in S}\frac{m_\beta}{z-\beta}
+\right)^{-1}.
+}
+\end{equation}
+This formula is especially convenient when the roots themselves are the primary exact data.  It avoids forming large products and often avoids severe overflow or underflow in $P(z)$ and $P'(z)$.
+
+\begin{remark}
+The field theorem does not by itself reduce the asymptotic cost of evaluating \eqref{eq:rootnewton}: a direct evaluation still costs $O(|S|)$ per pixel per Newton step.  Its benefit is structural and numerical: exact roots can be precomputed once, reevaluated at any requested precision, cached, and reused throughout a zoom or animation.
+\end{remark}
+
+\section{A robust numerical Julia-boundary algorithm}
+
+A reliable renderer should distinguish true convergence from finite-iteration proximity.  For each pixel center $z_0$:
+
+\begin{enumerate}[label=\textbf{Step \arabic*.},leftmargin=18mm]
+\item Iterate $z_{q+1}=N_P(z_q)$ up to a prescribed maximum $q_{\max}$.
+\item Declare convergence to a root $\beta$ only when a scale-aware test is satisfied, for example
+\[
+|z_q-\beta|<\varepsilon_{\rm root}
+\]
+or simultaneously
+\[
+|z_{q+1}-z_q|<\varepsilon_{\rm step}
+\quad\text{and}\quad
+|P(z_q)|<\varepsilon_P.
+\]
+\item Keep points that do not satisfy the criterion as unresolved rather than assigning them to the nearest root.
+\item Mark a pixel as a numerical Julia-boundary pixel when neighboring converged pixels have different basin labels, or when a converged and unresolved region meet.
+\item Recursively refine only those image tiles that contain mixed basin labels or unresolved points.
+\end{enumerate}
+
+The final step is an adaptive subdivision method: smooth interior basin tiles can be filled cheaply, while computational effort is concentrated near the Julia set.
+
+\section{Why algebraicity helps deep zooms}
+
+The exact field structure is particularly useful when the camera window becomes very small.  Suppose a zoom frame is centered at $c\in\C$ with width scale $\rho>0$.  Introduce local coordinates
+\begin{equation}
+\label{eq:localcoord}
+z=c+\rho w.
+\end{equation}
+Then the Newton map in local coordinates is
+\begin{equation}
+\label{eq:localnewton}
+w_{q+1}
+=\frac{N_P(c+\rho w_q)-c}{\rho}
+=w_q-
+\frac{1}{\rho\displaystyle\sum_{\beta\in S}
+\frac{m_\beta}{(c-\beta)+\rho w_q}}.
+\end{equation}
+This form isolates the small scale $\rho$ and prevents repeated subtraction of nearly equal screen coordinates at ordinary floating-point precision.
+
+\subsection{Exact preprocessing and adaptive precision}
+
+Choose independent squarefree generators $s_1,\ldots,s_r$ of $K_G$.  Then the finite-stage roots can be stored exactly in the basis \eqref{eq:basis}.  Before rendering a frame, they are evaluated numerically at the precision required by the current zoom depth.
+
+A practical precision schedule is
+\begin{equation}
+\label{eq:precisionrule}
+p\approx -\log_{10}\rho+p_{\rm guard}
+\end{equation}
+ decimal digits, where $p_{\rm guard}$ is a safety margin.  Equation \eqref{eq:precisionrule} is a numerical rule of thumb, not a number-theoretic theorem.  The algebraicity theorem is what makes such reevaluation possible without accumulating the rounding history of previous frames.
+
+The key point is that the extension field does not change with recursion depth.  The renderer may therefore prepare the field basis, embeddings and exact root labels once, even if the recursive root set itself grows.
+
+\subsection{MP4 rendering pipeline}
+
+For a long zoom animation, the following pipeline is effective.
+
+\begin{enumerate}[label=(\roman*),leftmargin=12mm]
+\item \textbf{Exact group stage.} Compute $\sigma_h$, $d_h$, the squarefree generators of $K_G$, and the exact finite-stage roots.
+\item \textbf{Root cache.} Store each root by an exact field representation and a stable identifier.  Evaluate to machine or arbitrary precision only when a frame requires it.
+\item \textbf{Camera path.} Represent the frame center $c_t$ and scale $\rho_t$ analytically or at high precision.  Smooth interpolation is performed on the camera parameters, not by repeatedly rescaling raster images.
+\item \textbf{Local Newton iteration.} Use \eqref{eq:localnewton}, with precision chosen from the current scale.
+\item \textbf{Adaptive tiles.} Reuse basin labels from coarse tiles and refine only near mixed labels and unresolved points.
+\item \textbf{Temporal coherence.} Consecutive MP4 frames have nearby camera windows.  Previous labels, iteration counts, and refined tile locations provide good initial information for the next frame.
+\item \textbf{Encode.} The resulting raster frames are encoded with a television- or web-compatible codec.  For YouTube/television compatibility, H.264 in a standard $16{:}9$ format remains a robust default; modern codecs can be used when playback support is known.
+\end{enumerate}
+
+The algebraicity theorem therefore supports numerical stability and reuse, but the principal speedups come from local coordinates, adaptive subdivision, vectorized or GPU evaluation, and temporal caching.
+
+\section{Examples}
+
+\subsection{$C_3$}
+
+For the standard cyclic ordering of $C_3$, one finds
+\[
+d_h=8\qquad\text{for all }h\in C_3.
+\]
+Thus every normalized fiber point lies in
+\[
+K_{C_3}=\Q(i,\sqrt2),
+\]
+and the full fiber field has Galois group
+\[
+\Gal(K_{C_3}/\Q)\cong C_2\times C_2.
+\]
+Figure~\ref{fig:c3} shows a Newton-basin rendering for the identity fiber.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.72\textwidth]{c3_newton_basin.png}
+\caption{Newton fractal for a $C_3$ identity-fiber polynomial.  The three large colored regions are attraction basins; their recursively interwoven boundary is a numerical approximation of the Newton Julia set.}
+\label{fig:c3}
+\end{figure}
+
+\subsection{$Q_8$}
+
+Take the ordering
+\[
+(1,-1,i,-i,j,-j,k,-k).
+\]
+The values of $d_h$ are
+\begin{center}
+\begin{tabular}{c@{\qquad}cccccccc}
+\toprule
+$h$ & $1$ & $-1$ & $i$ & $-i$ & $j$ & $-j$ & $k$ & $-k$\\
+\midrule
+$d_h$ & $98$ & $98$ & $58$ & $58$ & $58$ & $58$ & $74$ & $98$\\
+\bottomrule
+\end{tabular}
+\end{center}
+Since
+\[
+98=7^2\cdot2,\qquad 58=2\cdot29,\qquad 74=2\cdot37,
+\]
+we obtain
+\begin{equation}
+\label{eq:q8field}
+\boxed{
+K_{Q_8}=\Q(i,\sqrt2,\sqrt{29},\sqrt{37}).
+}
+\end{equation}
+The square classes of $2,29,37$ are independent, hence
+\begin{equation}
+\label{eq:q8gal}
+\boxed{
+[K_{Q_8}:\Q]=16,
+\qquad
+\Gal(K_{Q_8}/\Q)\cong(C_2)^4.
+}
+\end{equation}
+For the identity fiber alone, $d_1=98$, so the smaller field $\Q(i,\sqrt2)$ suffices.
+
+\begin{figure}[htbp]
+\centering
+\begin{subfigure}[t]{0.48\textwidth}
+\centering
+\includegraphics[width=\textwidth]{q8_newton_basin.png}
+\caption{$Q_8$ Newton basins.}
+\end{subfigure}\hfill
+\begin{subfigure}[t]{0.48\textwidth}
+\centering
+\includegraphics[width=\textwidth]{q8_julia_zoom.png}
+\caption{A numerical $Q_8$ Julia-boundary zoom.}
+\end{subfigure}
+\caption{Examples for the quaternion group.  The left image displays eight attraction basins.  The right image suppresses the basin colors and retains only the numerically detected basin boundary.}
+\label{fig:q8}
+\end{figure}
+
+Figure~\ref{fig:zoomseq} illustrates the principle of a deep zoom along one branch of the $Q_8$ boundary.  At every stage the underlying roots are unchanged; only the local coordinate center and scale vary.  This is precisely the setting in which exact root reconstruction and scale-dependent precision are most useful.
+
+\begin{figure}[p]
+\centering
+\includegraphics[width=\textwidth]{q8_deep_zoom_sequence.png}
+\caption{A sequence of progressively smaller windows along a numerical $Q_8$ Julia boundary.  The examples are computed from the same identity-fiber polynomial.  In a production deep-zoom renderer, one increases both arithmetic precision and the maximum Newton iteration count as the window scale decreases.}
+\label{fig:zoomseq}
+\end{figure}
+
+\section{Discussion}
+
+The construction separates three layers of structure.
+
+\begin{enumerate}[label=\arabic*.,leftmargin=10mm]
+\item The finite group determines the permutations $\sigma_h$ and therefore the discrete product fibers.
+\item The chosen planar normalization converts the discrete data into algebraic complex numbers contained in a finite multiquadratic field.
+\item The resulting polynomial defines a rational Newton dynamical system whose Julia set reflects nonlinear basin geometry rather than the group law itself.
+\end{enumerate}
+
+The Galois group of the fiber field should therefore not be confused with the original finite group.  For example, $Q_8$ is nonabelian, whereas its fiber field in \eqref{eq:q8field} has the abelian Galois group $(C_2)^4$.  The two groups encode different information: multiplication in $G$ versus arithmetic conjugation of the normalized geometry.
+
+Several questions remain open.  How strongly does the field $K_G$ depend on the ordering of $G$?  Which nonisomorphic ordered groups have the same fiber field?  Can the Galois action be detected directly in symmetries of the associated family of Newton maps?  Can one characterize root multisets that are Galois-stable and hence produce Newton maps defined over $\Q$?  Finally, the infinite recursive attractor contains points beyond the finite algebraic stages, suggesting a natural interface between algebraic finite approximants and transcendental limiting geometry.
+
+\section{Conclusion}
+
+For every ordered finite group, the centered and normalized Cayley product-fiber points are algebraic and are contained in one explicit multiquadratic field $K_G$.  Its Galois group is an elementary abelian $2$-group, and rational finite-depth recursion does not enlarge the field.  Any finite fiber or recursive root set therefore defines a Newton rational map over $K_G$.
+
+This arithmetic rigidity is useful computationally.  The roots can be stored exactly, reconstructed to arbitrary precision, and evaluated in local coordinates during deep zooms.  Combined with the root-based Newton formula, adaptive basin refinement and temporal coherence, this yields a principled route to stable high-resolution Julia-boundary images and long MP4 animations for arbitrary finite groups.
+
+\begin{thebibliography}{9}
+
+\bibitem{Beardon}
+A.~F.~Beardon,
+\emph{Iteration of Rational Functions},
+Graduate Texts in Mathematics 132, Springer, 1991.
+
+\bibitem{Milnor}
+J.~Milnor,
+\emph{Dynamics in One Complex Variable}, 3rd ed.,
+Annals of Mathematics Studies 160, Princeton University Press, 2006.
+
+\bibitem{NewtonDynamics}
+J.~H.~Hubbard, D.~Schleicher, and S.~Sutherland,
+How to find all roots of complex polynomials by Newton's method,
+\emph{Inventiones Mathematicae} 146 (2001), 1--33.
+
+\end{thebibliography}
+
+\end{document}

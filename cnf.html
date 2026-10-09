@@ -1,0 +1,676 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no,maximum-scale=1">
+<meta name="theme-color" content="#0d0f14">
+<title>Cayley Fibergraph Newton-Fraktal Zoomer – Algebraic Mobile</title>
+<style>
+:root{
+  --bg:#0d0f14; --panel:#11151b; --panel2:#171c24; --text:#f4f6fb; --muted:#aeb7c5;
+  --line:#2a303b; --btn:#222836; --chip:#1d2430; --chipOn:#2d4f72; --accent:#7dd3fc;
+  --safe-top:env(safe-area-inset-top,0px); --safe-right:env(safe-area-inset-right,0px);
+  --safe-bottom:env(safe-area-inset-bottom,0px); --safe-left:env(safe-area-inset-left,0px);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{
+  margin:0;width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--text);
+  font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+  overscroll-behavior:none;
+}
+body{display:flex;flex-direction:column}
+button,select{font:inherit}
+button{touch-action:manipulation}
+
+#topbar{
+  position:relative;z-index:20;display:flex;align-items:center;gap:8px;
+  padding:calc(8px + var(--safe-top)) calc(8px + var(--safe-right)) 8px calc(8px + var(--safe-left));
+  background:rgba(17,21,27,.98);border-bottom:1px solid var(--line);
+}
+#title{flex:1;min-width:0;font-size:14px;font-weight:750;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.iconbtn{
+  flex:0 0 auto;width:42px;height:38px;border:1px solid var(--line);border-radius:10px;
+  background:var(--btn);color:var(--text);font-weight:800;font-size:17px;
+}
+.pngbtn{width:52px;font-size:11px;letter-spacing:.3px}
+#panel{
+  position:absolute;z-index:15;left:0;right:0;top:calc(55px + var(--safe-top));
+  max-height:min(62vh,560px);overflow:auto;
+  background:rgba(17,21,27,.98);border-bottom:1px solid var(--line);
+  padding:10px calc(10px + var(--safe-right)) 10px calc(10px + var(--safe-left));
+  box-shadow:0 10px 28px rgba(0,0,0,.35);
+  transform:translateY(-110%);transition:transform .2s ease;
+}
+#panel.open{transform:translateY(0)}
+.controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.control{display:flex;flex-direction:column;gap:4px}
+label{font-size:11px;color:var(--muted)}
+select,button{
+  min-height:40px;border:1px solid var(--line);border-radius:10px;
+  background:var(--btn);color:var(--text);padding:8px 10px;font-size:14px
+}
+#elemWrap{margin-top:10px;border:1px solid var(--line);border-radius:12px;padding:9px;background:#10151d}
+#elemHead{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+#elemHead small{display:block;color:var(--muted);line-height:1.25}
+#elemButtons{
+  display:flex;gap:7px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none;
+}
+#elemButtons::-webkit-scrollbar{display:none}
+.chip{
+  flex:0 0 auto;min-height:34px;border-radius:999px;padding:6px 11px;
+  background:var(--chip);border:1px solid var(--line);font-size:13px
+}
+.chip.on{background:var(--chipOn);border-color:#4e7cab}
+.minirow{display:flex;gap:6px}
+.minirow button{min-height:34px;padding:6px 9px;font-size:12px}
+
+#wrap{position:relative;flex:1;min-height:0;touch-action:none}
+canvas{position:absolute;inset:0;width:100%;height:100%;display:block;background:#080a0f}
+
+#hud{
+  position:absolute;z-index:5;left:8px;right:8px;bottom:calc(8px + var(--safe-bottom));
+  background:rgba(12,15,21,.78);backdrop-filter:blur(7px);
+  border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:8px 10px;
+  font-size:11px;line-height:1.3;color:#dce4ef;pointer-events:none;
+  transition:opacity .2s ease;
+}
+#hud.compact #help{display:none}
+#busy{
+  position:absolute;z-index:8;right:10px;top:10px;background:rgba(0,0,0,.62);
+  padding:7px 10px;border-radius:9px;font-size:12px;display:none
+}
+#toast{
+  position:absolute;z-index:10;left:50%;top:14px;transform:translateX(-50%);
+  background:rgba(0,0,0,.72);border:1px solid rgba(255,255,255,.12);border-radius:999px;
+  padding:7px 11px;font-size:12px;opacity:0;pointer-events:none;transition:opacity .2s
+}
+#toast.show{opacity:1}
+
+#fab{
+  position:absolute;z-index:6;right:10px;bottom:calc(76px + var(--safe-bottom));
+  display:flex;flex-direction:column;gap:8px
+}
+.fabbtn{
+  width:44px;height:44px;border-radius:50%;padding:0;background:rgba(24,30,40,.9);
+  border:1px solid rgba(255,255,255,.12);font-size:20px
+}
+
+@media (min-width:760px){
+  #title{font-size:16px}
+  .pngbtn{width:52px;font-size:11px;letter-spacing:.3px}
+#panel{top:calc(57px + var(--safe-top));max-height:52vh}
+  .controls{grid-template-columns:repeat(4,minmax(0,1fr))}
+  #hud{left:10px;right:auto;max-width:680px}
+}
+@media (orientation:landscape) and (max-height:560px){
+  .pngbtn{width:52px;font-size:11px;letter-spacing:.3px}
+#panel{max-height:74vh}
+  #hud{font-size:10px;max-width:56vw}
+  #fab{bottom:10px}
+}
+</style>
+</head>
+<body>
+  <div id="topbar">
+    <div id="title">Cayley-Fibergraph → Algebraic Newton / Julia</div>
+    <button id="menuBtn" class="iconbtn" aria-label="Einstellungen">☰</button>
+    <button id="pngBtn" class="iconbtn pngbtn" aria-label="PNG speichern">PNG</button>
+    <button id="fullBtn" class="iconbtn" aria-label="Vollbild">⛶</button>
+  </div>
+
+  <section id="panel" aria-label="Einstellungen">
+    <div class="controls">
+      <div class="control">
+        <label>Gruppe</label>
+        <select id="group">
+          <optgroup label="Zyklisch">
+            <option value="C2" selected>C₂</option>
+            <option value="C3">C₃</option>
+            <option value="C4">C₄</option>
+            <option value="C5">C₅</option>
+            <option value="C6">C₆</option>
+            <option value="C7">C₇</option>
+            <option value="C8">C₈</option>
+            <option value="C9">C₉</option>
+            <option value="C10">C₁₀</option>
+            <option value="C11">C₁₁</option>
+            <option value="C12">C₁₂</option>
+          </optgroup>
+          <optgroup label="Abelsch – Produkte">
+            <option value="V4">V₄ = C₂×C₂</option>
+            <option value="C2xC4">C₂×C₄</option>
+            <option value="C3xC3">C₃×C₃</option>
+          </optgroup>
+          <optgroup label="Diedergruppen">
+            <option value="D3">D₃ (Ordnung 6)</option>
+            <option value="D4">D₄ (Ordnung 8)</option>
+            <option value="D5">D₅ (Ordnung 10)</option>
+            <option value="D6">D₆ (Ordnung 12)</option>
+          </optgroup>
+          <optgroup label="Weitere nichtabelsche Gruppen">
+            <option value="S3">S₃</option>
+            <option value="Q8">Q₈</option>
+            <option value="A4">A₄</option>
+          </optgroup>
+        </select>
+      </div>
+      <div class="control">
+        <label>Start-Element</label>
+        <select id="rootElem"></select>
+      </div>
+      <div class="control">
+        <label>Rekursionstiefe</label>
+        <select id="depth">
+          <option>0</option><option selected>1</option><option>2</option><option>3</option><option>4</option>
+        </select>
+      </div>
+      <div class="control">
+        <label>Darstellung</label>
+        <select id="mode">
+          <option value="basins">Newton-Basins · glatt</option>
+          <option value="julia" selected>Julia-Grenze</option>
+        </select>
+      </div>
+      <div class="control">
+        <label>Nullstellen aus</label>
+        <select id="rootsource">
+          <option value="leaf" selected>nur letzte Generation</option>
+          <option value="all">alle Generationen</option>
+        </select>
+      </div>
+      <div class="control">
+        <label>Multiplizitäten</label>
+        <select id="mult">
+          <option value="on" selected>berücksichtigen</option>
+          <option value="off">ignorieren</option>
+        </select>
+      </div>
+      <div class="control">
+        <label>Qualität</label>
+        <select id="quality">
+          <option value="0.42" selected>schnell</option>
+          <option value="0.62">mittel</option>
+          <option value="0.84">hoch</option>
+        </select>
+      </div>
+      <div class="control">
+        <label>Aktionen</label>
+        <div class="minirow">
+          <button id="render">Rendern</button>
+          <button id="reset">Reset</button>
+          <button id="pngPanelBtn">PNG</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="elemWrap">
+      <div id="elemHead">
+        <div>
+          <b style="font-size:12px">Aktive Elemente</b>
+          <small>Diese Elemente werden als Kindfiguren eingesetzt.</small>
+        </div>
+        <div class="minirow">
+          <button id="allOn">alle</button>
+          <button id="allOff">keine</button>
+        </div>
+      </div>
+      <div id="elemButtons"></div>
+    </div>
+  </section>
+
+  <main id="wrap">
+    <canvas id="cv"></canvas>
+    <div id="busy">rechne…</div>
+    <div id="toast"></div>
+    <div id="fab">
+      <button id="plusBtn" class="fabbtn" aria-label="Hineinzoomen">+</button>
+      <button id="minusBtn" class="fabbtn" aria-label="Herauszoomen">−</button>
+      <button id="homeBtn" class="fabbtn" aria-label="Ansicht zurücksetzen">⌂</button>
+    </div>
+    <div id="hud">
+      <div id="help"><b>Algebraischer Kern:</b> exakte Fiber-Radikale · Newton via P′/P · lokale Kamerakoordinaten.<br><b>Touch:</b> 1 Finger = verschieben · 2 Finger = Pinch-Zoom · Doppeltipp = hineinzoomen.</div>
+      <div id="stats"></div>
+    </div>
+  </main>
+
+<script>
+"use strict";
+
+const $=id=>document.getElementById(id);
+const cv=$("cv"), ctx=cv.getContext("2d",{alpha:false}), wrap=$("wrap");
+const busy=$("busy"), stats=$("stats"), panel=$("panel"), hud=$("hud"), toast=$("toast");
+
+const ui={
+  group:$("group"), rootElem:$("rootElem"), depth:$("depth"), mode:$("mode"),
+  rootsource:$("rootsource"), mult:$("mult"), quality:$("quality"),
+  render:$("render"), reset:$("reset"), elemButtons:$("elemButtons"),
+  allOn:$("allOn"), allOff:$("allOff")
+};
+
+const TAU=2*Math.PI;
+const mod=(a,n)=>((a%n)+n)%n;
+
+// ---------- Gruppen ----------
+function groupCyclic(n){
+  const mul=Array.from({length:n},(_,a)=>Array.from({length:n},(_,b)=>mod(a+b,n)));
+  const inv=Array.from({length:n},(_,a)=>mod(-a,n));
+  return {name:"C"+n,n,mul,inv,labels:Array.from({length:n},(_,i)=>i===0?"e":"a"+(i===1?"":"^"+i))};
+}
+function groupDirectProduct(m,n,name=`C${m}xC${n}`){
+  const elems=[];for(let a=0;a<m;a++)for(let b=0;b<n;b++)elems.push([a,b]);
+  const idx=new Map(elems.map((e,i)=>[e.join(","),i]));
+  const mul=elems.map(x=>elems.map(y=>idx.get(`${mod(x[0]+y[0],m)},${mod(x[1]+y[1],n)}`)));
+  const inv=elems.map(x=>idx.get(`${mod(-x[0],m)},${mod(-x[1],n)}`));
+  const labels=elems.map(([a,b],i)=>i===0?"e":`(${a},${b})`);
+  return {name,n:m*n,mul,inv,labels};
+}
+function groupV4(){
+  const G=groupDirectProduct(2,2,"V4");
+  G.labels=["e","b","a","ab"];
+  return G;
+}
+function groupDihedral(n){
+  // (k,e) = r^k s^e,  s r s = r^{-1}; |D_n|=2n.
+  const elems=[];for(let e=0;e<2;e++)for(let k=0;k<n;k++)elems.push([k,e]);
+  const idx=new Map(elems.map((x,i)=>[x.join(","),i]));
+  const mul=elems.map(([a,e])=>elems.map(([b,f])=>{
+    const k=mod(a+(e?-b:b),n), g=e^f;return idx.get(`${k},${g}`);
+  }));
+  const inv=elems.map((_,i)=>mul[i].findIndex(v=>v===0));
+  const labels=elems.map(([k,e],i)=>{
+    if(i===0)return "e";
+    const rk=k===0?"":k===1?"r":`r^${k}`;
+    return e?(rk?`${rk}s`:"s"):rk;
+  });
+  return {name:`D${n}`,n:2*n,mul,inv,labels};
+}
+function permutations(n){
+  const out=[],used=Array(n).fill(false),p=[];
+  function rec(){if(p.length===n){out.push(p.slice());return}for(let i=0;i<n;i++)if(!used[i]){used[i]=true;p.push(i);rec();p.pop();used[i]=false}}
+  rec();return out;
+}
+function permParity(p){let inv=0;for(let i=0;i<p.length;i++)for(let j=i+1;j<p.length;j++)if(p[i]>p[j])inv++;return inv&1}
+const composeP=(p,q)=>q.map(i=>p[i]);
+function invP(p){const r=[];p.forEach((v,i)=>r[v]=i);return r}
+function groupPermutation(n,filter,name){
+  const elems=permutations(n).filter(filter).sort((a,b)=>a.join("").localeCompare(b.join("")));
+  const key=p=>p.join(""),idx=new Map(elems.map((p,i)=>[key(p),i]));
+  const mul=elems.map(a=>elems.map(b=>idx.get(key(composeP(a,b)))));
+  const inv=elems.map(p=>idx.get(key(invP(p))));
+  return {name,n:elems.length,mul,inv,labels:elems.map((p,i)=>i===0?"e":p.join(""))};
+}
+function groupS3(){return groupPermutation(3,()=>true,"S3")}
+function groupA4(){return groupPermutation(4,p=>permParity(p)===0,"A4")}
+function groupQ8(){
+  const labels=["1","-1","i","-i","j","-j","k","-k"];
+  const basis=["1","1","i","i","j","j","k","k"], sign=[1,-1,1,-1,1,-1,1,-1];
+  function basisMul(a,b){
+    if(a==="1")return [1,b]; if(b==="1")return [1,a]; if(a===b)return[-1,"1"];
+    const t={"i,j":[1,"k"],"j,k":[1,"i"],"k,i":[1,"j"],"j,i":[-1,"k"],"k,j":[-1,"i"],"i,k":[-1,"j"]};
+    return t[a+","+b];
+  }
+  function encode(s,b){const id=b==="1"?0:b==="i"?2:b==="j"?4:6;return s===1?id:id+1}
+  const mul=Array.from({length:8},()=>Array(8).fill(0));
+  for(let a=0;a<8;a++)for(let b=0;b<8;b++){
+    const [s0,bb]=basisMul(basis[a],basis[b]); mul[a][b]=encode(sign[a]*sign[b]*s0,bb);
+  }
+  const inv=Array(8).fill(0); for(let a=0;a<8;a++)inv[a]=mul[a].findIndex(v=>v===0);
+  return {name:"Q8",n:8,mul,inv,labels};
+}
+const GROUPS={
+  C2:groupCyclic(2),C3:groupCyclic(3),C4:groupCyclic(4),C5:groupCyclic(5),C6:groupCyclic(6),
+  C7:groupCyclic(7),C8:groupCyclic(8),C9:groupCyclic(9),C10:groupCyclic(10),C11:groupCyclic(11),C12:groupCyclic(12),
+  V4:groupV4(),C2xC4:groupDirectProduct(2,4,"C2xC4"),C3xC3:groupDirectProduct(3,3,"C3xC3"),
+  D3:groupDihedral(3),D4:groupDihedral(4),D5:groupDihedral(5),D6:groupDihedral(6),
+  S3:groupS3(),Q8:groupQ8(),A4:groupA4()
+};
+
+// ---------- Exakte algebraische Fiber-Geometrie ----------
+// Jeder normalisierte Fiberpunkt wird nicht über Schwerpunkt/Hypot angenähert,
+// sondern exakt als (A + i B)/sqrt(d) aufgebaut. Rekursive Punkte bleiben
+// endliche rationale Linearkombinationen derselben Radikale.
+function bgcd(a,b){a=a<0n?-a:a;b=b<0n?-b:b;while(b){const t=a%b;a=b;b=t}return a||1n}
+function frac(n,d=1n){
+  n=BigInt(n);d=BigInt(d);if(d===0n)throw new Error("division by zero");
+  if(d<0n){n=-n;d=-d} const g=bgcd(n,d);return {n:n/g,d:d/g}
+}
+function fadd(a,b){return frac(a.n*b.d+b.n*a.d,a.d*b.d)}
+function fmul(a,b){return frac(a.n*b.n,a.d*b.d)}
+function fzero(a){return a.n===0n}
+function fstr(a){return a.d===1n?String(a.n):`${a.n}/${a.d}`}
+function feval(a){return Number(a.n)/Number(a.d)}
+function squarefreeDecomp(d){
+  let s=d,q=1;
+  for(let p=2;p*p<=s;p++)while(s%(p*p)===0){s/=p*p;q*=p}
+  return {q,s};
+}
+function exprZero(){return new Map()}
+function exprClone(e){return new Map(e)}
+function exprAdd(a,b){
+  const r=exprClone(a);
+  for(const [s,c] of b){const z=r.has(s)?fadd(r.get(s),c):c;if(fzero(z))r.delete(s);else r.set(s,z)}
+  return r;
+}
+function exprScale(a,c){
+  const r=new Map();for(const [s,v] of a){const z=fmul(v,c);if(!fzero(z))r.set(s,z)}return r
+}
+function exprTerm(s,c){const r=new Map();if(!fzero(c))r.set(s,c);return r}
+function exprEval(e){let x=0;for(const [s,c] of e)x+=feval(c)/Math.sqrt(s);return x}
+function exprKey(e){return [...e.entries()].sort((a,b)=>a[0]-b[0]).map(([s,c])=>`${s}:${fstr(c)}`).join("+")||"0"}
+function exprLabel(e){return [...e.entries()].sort((a,b)=>a[0]-b[0]).map(([s,c])=>`${fstr(c)}/√${s}`).join(" + ")||"0"}
+
+function fiberPermutation(G,h){return Array.from({length:G.n},(_,j)=>G.mul[h][G.inv[j]])}
+function exactNormalizedVertices(G,h){
+  const sigma=fiberPermutation(G,h), raw=[];
+  let d=0;
+  for(let j=0;j<G.n;j++){
+    const A=2*j-(G.n-1), B=(G.n-1)-2*sigma[j];
+    d=Math.max(d,A*A+B*B); raw.push({A,B});
+  }
+  const {q,s}=squarefreeDecomp(d);
+  return raw.map(({A,B})=>{
+    const re=exprTerm(s,frac(BigInt(A),BigInt(q)));
+    const im=exprTerm(s,frac(BigInt(B),BigInt(q)));
+    return {re,im,x:exprEval(re),y:exprEval(im),A,B,d,s};
+  });
+}
+
+let activeElements=new Set(), roots=[], view={cx:0,cy:0,span:2.6};
+let renderToken=0, renderTimer=null, gestureActive=false;
+let algebraicBasis=[];
+
+function childElements(){return [...activeElements].sort((a,b)=>a-b)}
+
+function collectIteratedPoints(G,depth,rootElem,sourceMode){
+  const scale=frac(1n,BigInt(2*G.n)), all=[], active=childElements();
+  function push(pts){for(const p of pts)all.push(p)}
+  function rec(h,cre,cim,r,level){
+    const v=exactNormalizedVertices(G,h);
+    const pts=v.map(p=>({re:exprAdd(cre,exprScale(p.re,r)),im:exprAdd(cim,exprScale(p.im,r))}));
+    if(sourceMode==="all"||level===depth)push(pts);
+    if(level>=depth)return;
+    const cr=fmul(r,scale);
+    for(const child of active){const a=pts[child];rec(child,a.re,a.im,cr,level+1)}
+  }
+  rec(rootElem,exprZero(),exprZero(),frac(1n),0);
+
+  // Exakte Duplikaterkennung statt Rundung auf Dezimalstellen.
+  const mp=new Map(), basis=new Set();
+  for(const p of all){
+    for(const s of p.re.keys())basis.add(s);for(const s of p.im.keys())basis.add(s);
+    const key=exprKey(p.re)+"|"+exprKey(p.im),cur=mp.get(key);
+    if(cur)cur.m++;
+    else mp.set(key,{re:p.re,im:p.im,x:exprEval(p.re),y:exprEval(p.im),m:1,key});
+  }
+  algebraicBasis=[...basis].sort((a,b)=>a-b);
+  return [...mp.values()];
+}
+
+// ---------- UI ----------
+function rebuildElementUI(){
+  const G=GROUPS[ui.group.value];
+  ui.rootElem.innerHTML="";
+  for(let i=0;i<G.n;i++){
+    const o=document.createElement("option");o.value=i;o.textContent=G.labels[i];ui.rootElem.appendChild(o)
+  }
+  activeElements=new Set(Array.from({length:G.n},(_,i)=>i));
+  ui.elemButtons.innerHTML="";
+  for(let i=0;i<G.n;i++){
+    const b=document.createElement("button");b.className="chip on";b.textContent=G.labels[i];b.dataset.idx=i;
+    b.onclick=()=>{activeElements.has(i)?activeElements.delete(i):activeElements.add(i);syncChips();buildRootsAndRender(true)};
+    ui.elemButtons.appendChild(b);
+  }
+}
+function syncChips(){[...ui.elemButtons.children].forEach(b=>b.classList.toggle("on",activeElements.has(+b.dataset.idx)))}
+function showToast(t){toast.textContent=t;toast.classList.add("show");setTimeout(()=>toast.classList.remove("show"),1100)}
+
+$("menuBtn").onclick=()=>panel.classList.toggle("open");
+$("fullBtn").onclick=async()=>{
+  try{
+    if(!document.fullscreenElement)await document.documentElement.requestFullscreen();
+    else await document.exitFullscreen();
+  }catch(e){showToast("Vollbild nicht verfügbar")}
+};
+$("plusBtn").onclick=()=>zoomCenter(.62);
+$("minusBtn").onclick=()=>zoomCenter(1.6);
+$("homeBtn").onclick=()=>{resetView();scheduleRender(false,true)};
+ui.allOn.onclick=()=>{const G=GROUPS[ui.group.value];activeElements=new Set(Array.from({length:G.n},(_,i)=>i));syncChips();buildRootsAndRender(true)};
+ui.allOff.onclick=()=>{activeElements.clear();syncChips();buildRootsAndRender(true)};
+
+// ---------- Kamera ----------
+function resetView(){
+  if(!roots.length){view={cx:0,cy:0,span:2.6};return}
+  let xmin=Infinity,xmax=-Infinity,ymin=Infinity,ymax=-Infinity;
+  for(const r of roots){xmin=Math.min(xmin,r.x);xmax=Math.max(xmax,r.x);ymin=Math.min(ymin,r.y);ymax=Math.max(ymax,r.y)}
+  view.cx=(xmin+xmax)/2;view.cy=(ymin+ymax)/2;view.span=(Math.max(xmax-xmin,ymax-ymin)||2)*1.45
+}
+function screenToWorld(px,py){
+  const a=cv.width/cv.height,h=view.span,w=view.span*a;
+  return{x:view.cx+(px/cv.width-.5)*w,y:view.cy-(py/cv.height-.5)*h}
+}
+function zoomCenter(f){view.span=Math.max(1e-13,Math.min(30,view.span*f));scheduleRender(false,true)}
+function resize(){
+  const dpr=Math.min(2,window.devicePixelRatio||1),r=wrap.getBoundingClientRect();
+  cv.width=Math.max(1,Math.floor(r.width*dpr));cv.height=Math.max(1,Math.floor(r.height*dpr));
+  cv.style.width=r.width+"px";cv.style.height=r.height+"px";
+  scheduleRender(false,true)
+}
+addEventListener("resize",()=>{clearTimeout(renderTimer);renderTimer=setTimeout(resize,120)});
+
+// ---------- Algebraischer Dense-Renderer ----------
+function hsv2rgb(h,s,v){
+  h=(h%1+1)%1;const i=Math.floor(h*6),f=h*6-i,p=v*(1-s),q=v*(1-f*s),t=v*(1-(1-f)*s),m=i%6;
+  return m===0?[v,t,p]:m===1?[q,v,p]:m===2?[p,v,t]:m===3?[p,q,v]:m===4?[t,p,v]:[v,p,q]
+}
+function smoothPalette(t){
+  // periodische, kontinuierliche Palette für Newton-Konvergenzgeschwindigkeit
+  const r=.52+.48*Math.cos(TAU*(t+0.00));
+  const g=.52+.48*Math.cos(TAU*(t+0.18));
+  const b=.52+.48*Math.cos(TAU*(t+0.39));
+  return [r,g,b].map(v=>Math.max(0,Math.min(255,Math.round(255*Math.pow(Math.max(0,v),.92)))))
+}
+
+function scheduleRender(interactive=false,immediate=false){
+  clearTimeout(renderTimer);
+  if(immediate)return render(interactive);
+  renderTimer=setTimeout(()=>render(interactive),interactive?18:100);
+}
+
+async function render(interactive=false){
+  if(!roots.length){
+    ctx.fillStyle="#080a0f";ctx.fillRect(0,0,cv.width,cv.height);
+    stats.textContent="Keine Nullstellen – bitte mindestens ein aktives Element wählen.";return
+  }
+  const token=++renderToken;
+  if(!interactive)busy.style.display="block";
+
+  const baseQ=parseFloat(ui.quality.value), q=interactive?Math.min(.28,baseQ):baseQ;
+  const W=Math.max(120,Math.floor(cv.width*q)),H=Math.max(120,Math.floor(cv.height*q));
+  const off=document.createElement("canvas");off.width=W;off.height=H;const o=off.getContext("2d");
+  const img=o.createImageData(W,H),data=img.data;
+  const a=W/H,h=view.span,w=view.span*a;
+  const maxIter=interactive?16:34,useMult=ui.mult.value==="on";
+  const basin=new Int32Array(W*H),iterArr=new Uint8Array(W*H),resArr=new Float64Array(W*H);
+
+  // Lokale Kamerakoordinaten: Pixel werden um das aktuelle Zentrum gerechnet.
+  // Dadurch bleibt die Subtraktion z-alpha auch bei tiefem Zoom stabiler.
+  const localRoots=roots.map(r=>({x:r.x-view.cx,y:r.y-view.cy,m:r.m}));
+  let k=0;
+  for(let py=0;py<H;py++){
+    const zi0=(.5-(py+.5)/H)*h;
+    for(let px=0;px<W;px++,k++){
+      let zr=((px+.5)/W-.5)*w,zi=zi0,found=-1,it=0,lastD=Infinity;
+      for(it=0;it<maxIter;it++){
+        let sr=0,si=0,near=-1;
+        for(let j=0;j<localRoots.length;j++){
+          const dr=zr-localRoots[j].x,di=zi-localRoots[j].y,d2=dr*dr+di*di;
+          if(d2<1e-28){near=j;lastD=d2;break}
+          const m=useMult?localRoots[j].m:1;
+          sr+=m*dr/d2; si+=-m*di/d2;
+        }
+        if(near>=0){found=near;break}
+        const s2=sr*sr+si*si;if(s2<1e-28||!Number.isFinite(s2))break;
+        zr-=sr/s2; zi+=si/s2;
+
+        let bd=Infinity,bj=-1;
+        for(let j=0;j<localRoots.length;j++){
+          const dr=zr-localRoots[j].x,di=zi-localRoots[j].y,d2=dr*dr+di*di;
+          if(d2<bd){bd=d2;bj=j}
+        }
+        lastD=bd;
+        const tol2=Math.max(1e-28,Math.min(1e-16,view.span*view.span*1e-8));
+        if(bd<tol2){found=bj;break}
+      }
+      basin[k]=found;iterArr[k]=it;resArr[k]=Math.sqrt(Math.max(lastD,1e-300));
+    }
+    if(!interactive&&py%18===0){if(token!==renderToken)return;await new Promise(r=>setTimeout(r,0))}
+  }
+
+  if(ui.mode.value==="julia"){
+    for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+      const i=y*W+x,b=basin[i];let edge=false;
+      if(x>0&&basin[i-1]!==b)edge=true;if(x<W-1&&basin[i+1]!==b)edge=true;
+      if(y>0&&basin[i-W]!==b)edge=true;if(y<H-1&&basin[i+W]!==b)edge=true;
+      const p=i*4;
+      if(edge){data[p]=246;data[p+1]=222;data[p+2]=80}
+      else{data[p]=8;data[p+1]=10;data[p+2]=15}
+      data[p+3]=255;
+    }
+  }else{
+    // Mandelbrot-artige kontinuierliche Färbung: Basin-ID + glatte Konvergenzgröße.
+    for(let i=0;i<W*H;i++){
+      const b=basin[i],p=i*4;
+      if(b<0){data[p]=7;data[p+1]=9;data[p+2]=14;data[p+3]=255;continue}
+      const smooth=iterArr[i] + .22*(-Math.log(Math.max(resArr[i],1e-15)));
+      const t=((b/Math.max(1,roots.length))+.055*smooth)%1;
+      let [r,g,bl]=smoothPalette(t);
+      const band=.58+.42*(.5+.5*Math.cos(TAU*(.115*smooth+.07*b)));
+      data[p]=Math.round(r*band);data[p+1]=Math.round(g*band);data[p+2]=Math.round(bl*band);data[p+3]=255;
+    }
+  }
+
+  o.putImageData(img,0,0);ctx.imageSmoothingEnabled=false;ctx.drawImage(off,0,0,cv.width,cv.height);
+
+  // Nullstellen nur anzeigen, wenn sie in der aktuellen Ansicht sinnvoll sichtbar sind.
+  const asp=cv.width/cv.height,vh=view.span,vw=view.span*asp;
+  if(view.span>.004){
+    for(const r of roots){
+      const sx=(r.x-(view.cx-vw/2))/vw*cv.width,sy=((view.cy+vh/2)-r.y)/vh*cv.height;
+      if(sx<0||sx>cv.width||sy<0||sy>cv.height)continue;
+      ctx.beginPath();ctx.arc(sx,sy,Math.max(2,Math.min(5,1.5+1.2*r.m)),0,TAU);ctx.fillStyle="#5ed0ff";ctx.fill()
+    }
+  }
+
+  if(!interactive)busy.style.display="none";
+  const G=GROUPS[ui.group.value], chosen=childElements().map(i=>G.labels[i]).join(", ")||"∅";
+  const field=algebraicBasis.length?`Q(i, ${algebraicBasis.map(s=>`√${s}`).join(", ")})`:"Q(i)";
+  stats.textContent=`${G.name} · Start ${G.labels[+ui.rootElem.value]} · ${roots.length} exakte Nullstellen · Tiefe ${ui.depth.value} · ${ui.rootsource.value==="leaf"?"letzte Generation":"alle Generationen"} · Feldbasis ${field} · aktive Elemente: ${chosen}`;
+}
+
+function buildRootsAndRender(reset=true){
+  const G=GROUPS[ui.group.value],depth=+ui.depth.value;
+  if(G.n>=10&&depth>2)ui.depth.value="2";
+  else if(G.n>=8&&depth>3)ui.depth.value="3";
+  roots=collectIteratedPoints(G,+ui.depth.value,+ui.rootElem.value,ui.rootsource.value);
+  if(reset)resetView();
+  scheduleRender(false,true)
+}
+
+// ---------- UI events ----------
+ui.group.onchange=()=>{rebuildElementUI();buildRootsAndRender(true)};
+ui.rootElem.onchange=()=>buildRootsAndRender(true);
+ui.depth.onchange=()=>buildRootsAndRender(true);
+ui.rootsource.onchange=()=>buildRootsAndRender(true);
+ui.mult.onchange=()=>scheduleRender(false,true);
+ui.mode.onchange=()=>scheduleRender(false,true);
+ui.quality.onchange=()=>scheduleRender(false,true);
+ui.render.onclick=()=>{panel.classList.remove("open");buildRootsAndRender(false)};
+ui.reset.onclick=()=>{resetView();scheduleRender(false,true)};
+
+// ---------- Gesten ----------
+let pointers=new Map(),panStart=null,pinchStart=null,lastTap=0,refineTimer=null;
+
+function beginGesture(){gestureActive=true;hud.classList.add("compact")}
+function endGesture(){
+  gestureActive=false;clearTimeout(refineTimer);
+  refineTimer=setTimeout(()=>{hud.classList.remove("compact");scheduleRender(false,true)},140)
+}
+function ptrPos(e){
+  const r=cv.getBoundingClientRect();return{x:(e.clientX-r.left)*(cv.width/r.width),y:(e.clientY-r.top)*(cv.height/r.height)}
+}
+cv.addEventListener("pointerdown",e=>{
+  cv.setPointerCapture(e.pointerId);pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});beginGesture();
+  if(pointers.size===1){
+    panStart={x:e.clientX,y:e.clientY,cx:view.cx,cy:view.cy};
+    const now=Date.now();
+    if(now-lastTap<300){
+      const p=ptrPos(e),before=screenToWorld(p.x,p.y);view.span*=.5;const after=screenToWorld(p.x,p.y);
+      view.cx+=before.x-after.x;view.cy+=before.y-after.y;scheduleRender(true,true)
+    }
+    lastTap=now;
+  }else if(pointers.size===2){
+    const a=[...pointers.values()],dx=a[0].x-a[1].x,dy=a[0].y-a[1].y;
+    pinchStart={d:Math.hypot(dx,dy),span:view.span,mid:{x:(a[0].x+a[1].x)/2,y:(a[0].y+a[1].y)/2}};
+  }
+});
+cv.addEventListener("pointermove",e=>{
+  if(!pointers.has(e.pointerId))return;pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(pointers.size===1&&panStart){
+    const dx=e.clientX-panStart.x,dy=e.clientY-panStart.y,r=cv.getBoundingClientRect(),a=cv.width/cv.height;
+    view.cx=panStart.cx-dx/r.width*(view.span*a);view.cy=panStart.cy+dy/r.height*view.span;scheduleRender(true)
+  }else if(pointers.size===2&&pinchStart){
+    const a=[...pointers.values()],d=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y);
+    if(d>0){view.span=Math.max(1e-13,Math.min(30,pinchStart.span*pinchStart.d/d));scheduleRender(true)}
+  }
+});
+function pointerEnd(e){
+  pointers.delete(e.pointerId);
+  if(pointers.size<2)pinchStart=null;
+  if(pointers.size===0){panStart=null;endGesture()}
+}
+cv.addEventListener("pointerup",pointerEnd);cv.addEventListener("pointercancel",pointerEnd);
+
+cv.addEventListener("wheel",e=>{
+  e.preventDefault();beginGesture();
+  const p=ptrPos(e),before=screenToWorld(p.x,p.y),f=Math.exp(e.deltaY*.0015);
+  view.span=Math.max(1e-13,Math.min(30,view.span*f));
+  const after=screenToWorld(p.x,p.y);view.cx+=before.x-after.x;view.cy+=before.y-after.y;
+  scheduleRender(true);clearTimeout(refineTimer);refineTimer=setTimeout(endGesture,120)
+},{passive:false});
+
+
+async function savePNG(){
+  // Saves exactly the currently visible fractal canvas, without browser UI/panels.
+  try{
+    const G=GROUPS[ui.group.value];
+    const root=G.labels[+ui.rootElem.value].replace(/[^a-zA-Z0-9_-]+/g,"_");
+    const stamp=new Date().toISOString().replace(/[:.]/g,"-");
+    const name=`cayley_${G.name}_${root}_k${ui.depth.value}_${ui.mode.value}_${stamp}.png`;
+
+    const blob = await new Promise(resolve => cv.toBlob(resolve, "image/png"));
+    if(!blob){ showToast("PNG konnte nicht erzeugt werden"); return; }
+
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement("a");
+    a.href=url;
+    a.download=name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),1500);
+    showToast("PNG gespeichert");
+  }catch(e){
+    showToast("PNG-Export nicht verfügbar");
+  }
+}
+$("pngBtn").onclick=savePNG;
+$("pngPanelBtn").onclick=savePNG;
+
+// ---------- init ----------
+rebuildElementUI();
+panel.classList.add("open");
+buildRootsAndRender(true);
+resize();
+</script>
+</body>
+</html>
